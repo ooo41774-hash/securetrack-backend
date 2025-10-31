@@ -371,8 +371,8 @@ public class ProductService {
                 sDto.setReceivedTimestamp(shipment.getReceivedTimestamp());
                 shipmentDTOs.add(sDto);
             }
-            verifyProductResponse.setTraceRoute(shipmentDTOs);
         }
+        verifyProductResponse.setTraceRoute(shipmentDTOs);
 
         return verifyProductResponse;
     }

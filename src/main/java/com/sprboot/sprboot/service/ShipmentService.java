@@ -256,24 +256,9 @@ public class ShipmentService {
                         }
                 }
 
-                // get unique product
-                // a) load products with batch
-                List<Product> distinctProducts = traceabilityHistoryRepository.findAllProductByShipment(shipmentID);
-
-                List<ProductDTO> productDTOs = distinctProducts.stream()
-                                .map(product -> new ProductDTO(
-                                                product.getProductCode(),
-                                                product.getProductName(),
-                                                product.getBatches().stream()
-                                                                .map(batch -> new BatchDTO(
-                                                                                batch.getBatchNumber(),
-                                                                                batch.getUnits().stream()
-                                                                                                .map(
-                                                                                                                pi -> new UnitDTO(
-                                                                                                                                pi.getSerialNumber()))
-                                                                                                .toList()))
-                                                                .toList()))
-                                .toList();
+                // get shipment unit
+                List<Unit> shipmentUnits = traceabilityHistoryRepository.getUnitByShipmentID(shipmentID);
+                List<ProductDTO> productDTOs = MapperUtil.toHierarchyDTO(shipmentUnits);
 
                 return new VerifyShipmentResponse(shipment.getShipmentID(), sender.getUsername(),
                                 receiver.getUsername(),

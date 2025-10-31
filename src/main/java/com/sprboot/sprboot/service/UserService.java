@@ -109,7 +109,6 @@ public class UserService {
 
         try {
             userRepository.updateProfile(
-                    uReq.getUsername(),
                     uReq.getPhoneNumber(),
                     uReq.getEmail(),
                     uReq.getAddress(),

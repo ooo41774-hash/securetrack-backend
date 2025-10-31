@@ -26,7 +26,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
                 UPDATE User u
                 SET
-                    u.username = :username,
                     u.phoneNumber = :phoneNumber,
                     u.email = :email,
                     u.location.address = :address,
@@ -37,7 +36,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 WHERE u.userID = :userID
             """)
     void updateProfile(
-            @Param("username") String username,
             @Param("phoneNumber") String phoneNumber,
             @Param("email") String email,
             @Param("address") String address,

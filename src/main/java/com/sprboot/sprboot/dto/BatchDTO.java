@@ -10,6 +10,9 @@ public class BatchDTO {
     private List<UnitDTO> units;
     private UnitDTO unit;
 
+    public BatchDTO() {
+    }
+
     public BatchDTO(String batchNumber) {
         this.batchNumber = batchNumber;
     }
