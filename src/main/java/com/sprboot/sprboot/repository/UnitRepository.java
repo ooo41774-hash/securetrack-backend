@@ -105,9 +105,15 @@ public interface UnitRepository extends JpaRepository<Unit, Long> {
         @Modifying
         @Query("""
                         UPDATE Unit u SET u.status = 'received'
-                        WHERE u.unitID IN (
-                                SELECT th.unit.unitID FROM TraceabilityHistory th WHERE th.shipment.shipmentID = :shipmentID
-                        )
+                        WHERE u.unitID IN :unitIDs
                         """)
-        int updateUnitStatusReceived(@Param("shipmentID") Long shipmentID);
+        int updateUnitStatusReceived(@Param("unitIDs") List<Long> unitIDs);
+
+        @Transactional
+        @Modifying
+        @Query("""
+                        UPDATE Unit u SET u.status = 'received'
+                        WHERE u.unitID IN :unitIDs
+                        """)
+        int updateUnitStatusCreated(@Param("unitIDs") List<Long> unitIDs);
 }

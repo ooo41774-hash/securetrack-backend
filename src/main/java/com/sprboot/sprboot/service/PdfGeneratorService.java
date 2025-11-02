@@ -116,7 +116,7 @@ public class PdfGeneratorService {
                         LineSeparator line = new LineSeparator(new SolidLine(0.5f))
                                 .setMarginTop(2f)
                                 .setMarginBottom(2f)
-                                .setWidth(UnitValue.createPercentValue(100)); // 70% of cell width, centered
+                                .setWidth(UnitValue.createPercentValue(100));
 
                         cell.add(new Paragraph().add(line).setMargin(0));
 
@@ -160,12 +160,12 @@ public class PdfGeneratorService {
         // 6. Write the PDF to disk and return the byte[]
         // -----------------------------------------------------------------
         byte[] pdfBytes = baos.toByteArray();
-        Files.write(pdfPath, pdfBytes);
+        // Files.write(pdfPath, pdfBytes); comment till knows where to save
         return pdfBytes;
     }
 
     /* --------------------------------------------------------------------- */
-    /* Helper methods – put them in the same class (or a utility class) */
+    /* Helper methods */
     /* --------------------------------------------------------------------- */
     private static Paragraph createTitle() {
         return new Paragraph("Product QR Codes")
@@ -186,7 +186,7 @@ public class PdfGeneratorService {
         document.add(table);
         document.add(createFooter());
         document.add(new AreaBreak());
-        document.add(createTitle()); // fresh title – no clone() needed
+        document.add(createTitle());
     }
 
     public static byte[] generateQrCodePdf(Shipment shipment, String saveDirectory, String fileName)
@@ -257,7 +257,7 @@ public class PdfGeneratorService {
         }
 
         // save to disk
-        Files.write(pdfPath, baos.toByteArray());
+        // Files.write(pdfPath, baos.toByteArray()); comment till knows where to save
 
         return baos.toByteArray();
     }

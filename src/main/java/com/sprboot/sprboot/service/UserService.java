@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import com.sprboot.sprboot.dto.ChangePasswordRequest;
 import com.sprboot.sprboot.dto.LocationDTO;
-import com.sprboot.sprboot.dto.LoginRequest;
 import com.sprboot.sprboot.dto.SignupRequest;
 import com.sprboot.sprboot.dto.UpdateProfileRequest;
 import com.sprboot.sprboot.dto.UserDTO;

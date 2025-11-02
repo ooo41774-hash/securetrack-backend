@@ -24,12 +24,12 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
         int updateQrCodeUrl(@Param("qrCodeUrl") String qrCodeUrl, @Param("shipmentID") Long shipmentID);
 
         @Modifying
-        @Query("UPDATE Shipment s SET s.status = 'inTransit', s.sentTimestamp = :sentTimestamp WHERE s.shipmentID = :shipmentID")
+        @Query("UPDATE Shipment s SET s.status = 'inTransit', s.sentTimestamp = :sentTimestamp WHERE s.shipmentID = :shipmentID AND s.status <> 'recalled'")
         int updateShipmentInTransit(@Param("sentTimestamp") LocalDateTime sentTimestamp,
                         @Param("shipmentID") Long shipmentID);
 
         @Modifying
-        @Query("UPDATE Shipment s SET s.status = 'received', s.receivedTimestamp = :receivedTimestamp WHERE s.shipmentID = :shipmentID")
+        @Query("UPDATE Shipment s SET s.status = 'received', s.receivedTimestamp = :receivedTimestamp WHERE s.shipmentID = :shipmentID AND s.status <> 'recalled'")
         int updateShipmentReceived(@Param("receivedTimestamp") LocalDateTime receivedTimestamp,
                         @Param("shipmentID") Long shipmentID);
 
@@ -61,6 +61,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
                                  JOIN FETCH th.unit u
                                  WHERE u.unitID = :unitID
                                  AND s.sender.userID = :userID
+                                 AND s.status <> 'recalled'
                         """)
         Shipment findShipmentReceiverByUnit(@Param("unitID") Long unitID, @Param("userID") Long userID);
 
@@ -71,6 +72,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
                                  JOIN FETCH th.unit u
                                  WHERE u.unitID = :unitID
                                  AND s.receiver.userID = :userID
+                                 AND s.status <> 'recalled'
                         """)
         Shipment findShipmentSenderByUnit(@Param("unitID") Long unitID, @Param("userID") Long userID);
 

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprboot.sprboot.dto.AddShipmentRequest;
 import com.sprboot.sprboot.dto.ShipmentDTO;
 import com.sprboot.sprboot.dto.ShipmentRequest;
@@ -52,20 +53,23 @@ public class ShipmentController {
     public ResponseEntity<byte[]> createShipment(@ModelAttribute AddShipmentRequest addShipmentRequest) {
 
         MultipartFile file = addShipmentRequest.getFile();
-        String filename = file.getOriginalFilename();
-        if (filename == null ||
-                !(filename.endsWith(".csv") || filename.endsWith(".xlsx") || filename.endsWith(".xls"))) {
-            throw new IllegalArgumentException("Only CSV or Excel files are allowed.");
+        if (file != null) {
+            String inputFilename = file.getOriginalFilename();
+            if (inputFilename == null ||
+                    !(inputFilename.endsWith(".csv") || inputFilename.endsWith(".xlsx")
+                            || inputFilename.endsWith(".xls"))) {
+                throw new IllegalArgumentException("Only CSV or Excel files are allowed.");
+            }
         }
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        filename = "shipment_qrcodes_" + timestamp + ".pdf";
-        addShipmentRequest.setFilename(filename);
+        String outputFilename = "shipment_qrcodes_" + timestamp + ".pdf";
+        addShipmentRequest.setFilename(outputFilename);
 
         byte[] pdfBytes = shipmentService.createShipment(addShipmentRequest);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + outputFilename)
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }

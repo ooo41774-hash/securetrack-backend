@@ -71,6 +71,9 @@ public class ProductService {
     @Value("${sec.secretkeyaes}")
     private String secretKeyAes;
 
+    @Value("${resources.saveDir.productqr}")
+    private String saveDirProductQR;
+
     private DateTimeFormatter dateFormatter;
 
     private SecretKey key;
@@ -238,10 +241,9 @@ public class ProductService {
                 savedUnits.add(saveUnit(product, batch, serialNumber, description, registrar));
             }
 
-            String saveDir = "src/main/resources/product_qrcodes";
             filename = productRequest.getFilename();
 
-            byte[] pdfBytes = PdfGeneratorService.generateQrCodePdf(savedUnits, saveDir, filename);
+            byte[] pdfBytes = PdfGeneratorService.generateQrCodePdf(savedUnits, saveDirProductQR, filename);
 
             return pdfBytes;
         } catch (Exception e) {
@@ -380,16 +382,20 @@ public class ProductService {
     // for My Custody Self Registered
     public List<CustodyInfoDTO> getMyCustodySelfRegistered(Long userID) {
 
-        List<Unit> units = unitRepository.findByRegistrar(userID);
         List<CustodyInfoDTO> result = new ArrayList<>();
-
-        for (Unit u : units) {
-            CustodyInfoDTO dto = buildCustodyInfo(u, userID);
-            // For self-registered items, override date
-            if (dto.getCreatedReceivedDate() == null) {
-                dto.setCreatedReceivedDate(u.getCreatedTimestamp());
+        try {
+            List<Unit> units = unitRepository.findByRegistrar(userID);
+            for (Unit u : units) {
+                CustodyInfoDTO dto = buildCustodyInfo(u, userID);
+                // For self-registered items, override date
+                if (dto.getCreatedReceivedDate() == null) {
+                    dto.setCreatedReceivedDate(u.getCreatedTimestamp());
+                }
+                result.add(dto);
             }
-            result.add(dto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalArgumentException("Error Fetching Data: " + e.getMessage());
         }
 
         return result;

@@ -61,6 +61,12 @@ public class ShipmentService {
         @Value("${sec.secretkeyaes}")
         private String secretKeyAes;
 
+        @Value("${resources.saveDir.shipmentqr}")
+        private String saveDirShipmentQR;
+
+        @Value("${app.thresholdMeters}")
+        private double thresholdMeters;
+
         private ShipmentRepository shipmentRepository;
         private UserRepository userRepository;
         private UnitRepository unitRepository;
@@ -83,7 +89,12 @@ public class ShipmentService {
         public byte[] createShipment(AddShipmentRequest addShipmentRequest) {
 
                 MultipartFile file = addShipmentRequest.getFile();
-                List<String> serialNumbers = parseSerialNumbers(file);
+                List<String> serialNumbers = new ArrayList<>();
+                if (file != null) {
+                        serialNumbers = parseSerialNumbers(file);
+                } else {
+                        serialNumbers = addShipmentRequest.getSerialNumbers();
+                }
 
                 SecretKey key = AESUtil.getKeyFromString(secretKeyAes);
 
@@ -95,22 +106,22 @@ public class ShipmentService {
                                 .orElseThrow(() -> new IllegalArgumentException("Receiver not found"));
 
                 List<Unit> units = new ArrayList<>();
+                List<String> invalidSerials = new ArrayList<>();
                 for (String serialNumber : serialNumbers) {
                         Unit u = unitRepository.findBySerialNumber(serialNumber)
                                         .orElseThrow(() -> new EntityNotFoundException(
                                                         "Product unit not found, serial number : " + serialNumber));
 
-                        // Block in-transit shipments first
-                        boolean inTransit = traceabilityHistoryRepository
-                                        .existsByUnit_UnitIDAndShipment_StatusNot(u.getUnitID(), "received");
-
-                        if (inTransit) {
-                                throw new IllegalArgumentException(
-                                                "Unit " + u.getSerialNumber()
-                                                                + " is still in transit (shipment not yet received).");
-                        } else {
+                        // Check in-transit units
+                        if (u.getStatus().equals("pending") || u.getStatus().equals("shipped")) {
+                                invalidSerials.add(u.getSerialNumber());
+                        } else
                                 units.add(u);
-                        }
+                }
+
+                // Block in transit serial numbers
+                if (invalidSerials.size() > 0) {
+                        throw new IllegalArgumentException("Units still in transit: " + invalidSerials);
                 }
 
                 List<Long> unitIDs = units.stream().map(u -> u.getUnitID()).toList();
@@ -190,12 +201,11 @@ public class ShipmentService {
                 // update unit status
                 unitRepository.updateUnitStatusPending(savedShipment.getShipmentID());
 
-                String saveDir = "src/main/resources/shipment_qrcodes";
                 String filename = addShipmentRequest.getFilename();
 
                 byte[] pdfBytes = null;
                 try {
-                        pdfBytes = PdfGeneratorService.generateQrCodePdf(shipment, saveDir, filename);
+                        pdfBytes = PdfGeneratorService.generateQrCodePdf(shipment, saveDirShipmentQR, filename);
                 } catch (Exception e) {
                         e.printStackTrace();
                 }
@@ -297,7 +307,6 @@ public class ShipmentService {
 
         @Transactional
         public boolean receiveShipment(ShipmentRequest shipmentRequest) {
-                double thresholdMeters = 100.0;
                 Long shipmentID = shipmentRequest.getShipmentID();
 
                 try {
@@ -350,6 +359,7 @@ public class ShipmentService {
         public Boolean recallShipment(ShipmentRequest shipmentRequest) {
                 try {
                         long shipmentID = shipmentRequest.getShipmentID();
+                        long userID = shipmentRequest.getUserID();
 
                         Shipment shipment = shipmentRepository.findById(shipmentID)
                                         .orElseThrow(() -> new IllegalArgumentException("Shipment ID not found"));
@@ -367,9 +377,20 @@ public class ShipmentService {
                         // update shipment status = recalled
                         shipmentRepository.updateShipmentRecalled(LocalDateTime.now(), shipmentRequest.getShipmentID());
 
-                        // update current custodian = sender and status = received
-                        unitRepository.updateUnitCustodianAndStatusReceived(shipmentID,
-                                        shipment.getSender().getUserID());
+                        // update current custodian = sender and status = created OR received
+                        List<Unit> shipmentUnits = traceabilityHistoryRepository.getUnitByShipmentID(shipmentID);
+                        List<Long> selfRegisteredUnits = new ArrayList<>();
+                        List<Long> receivedUnits = new ArrayList<>();
+                        for (Unit u : shipmentUnits) {
+                                if (u.getCurrentCustodianID() == u.getBatch().getProduct().getRegistrar().getUserID()) {
+                                        selfRegisteredUnits.add(u.getUnitID());
+                                } else {
+                                        receivedUnits.add(u.getUnitID());
+                                }
+                        }
+                        unitRepository.updateUnitStatusCreated(selfRegisteredUnits);
+                        unitRepository.updateUnitStatusReceived(receivedUnits);
+
                         return true;
                 } catch (Exception e) {
                         e.printStackTrace();
@@ -512,7 +533,8 @@ public class ShipmentService {
                         ShipmentDTO sDto = new ShipmentDTO();
                         sDto.setShipmentID(shipmentID);
                         sDto.setReceiverUsername(shipment.getReceiver().getUsername());
-                        // sDto.setShipmentAddress(shipment.getReceiver().getLocation().getAddress());
+                        sDto.setSenderUsername(shipment.getSender().getUsername());
+                        sDto.setShipmentAddress(shipment.getDestination().getAddress());
                         sDto.setStatus(shipment.getStatus());
                         sDto.setSentTimestamp(shipment.getSentTimestamp());
                         sDto.setCreationTimestamp(shipment.getCreationTimestamp());
