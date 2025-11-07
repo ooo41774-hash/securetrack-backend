@@ -31,9 +31,13 @@ public interface UnitRepository extends JpaRepository<Unit, Long> {
 
         @Query("""
                         SELECT u.serialNumber FROM Unit u
-                        WHERE u.serialNumber IN :serialNumbers
+                        JOIN u.batch b
+                        JOIN b.product p
+                        WHERE p.registrar.userID = :userID
+                        AND u.serialNumber IN :serialNumbers
                         """)
-        List<String> checkIfSerialNumberExist(@Param("serialNumbers") List<String> serialNumbers);
+        List<String> checkIfSerialNumberExist(@Param("serialNumbers") List<String> serialNumbers,
+                        @Param("userID") Long userID);
 
         @Query("""
                         SELECT u FROM Unit u

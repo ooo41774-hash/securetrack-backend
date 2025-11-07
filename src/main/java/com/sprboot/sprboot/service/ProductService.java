@@ -180,7 +180,7 @@ public class ProductService {
             System.out.println("ProductBatchIDs -> " + productCodeToBatchNumbers);
 
             // validate serial numbers
-            List<String> invalids = unitRepository.checkIfSerialNumberExist(serialNumbers);
+            List<String> invalids = unitRepository.checkIfSerialNumberExist(serialNumbers, registrar.getUserID());
             if (!invalids.isEmpty()) {
                 throw new IllegalAccessException("The following serial numbers already exist: " + invalids);
             }

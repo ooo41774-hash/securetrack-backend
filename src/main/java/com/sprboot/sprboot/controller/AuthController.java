@@ -1,6 +1,7 @@
 package com.sprboot.sprboot.controller;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -29,13 +30,17 @@ public class AuthController {
 
     @PostMapping("/login")
     public LoginResponse login(@RequestBody LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
-        User user = ((AuthUserDetailsService) userDetailsService).findByUsername(request.getUsername());
+            UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+            User user = ((AuthUserDetailsService) userDetailsService).findByUsername(request.getUsername());
 
-        String token = jwtUtils.generateToken(userDetails.getUsername(), user.getUserID());
-        return new LoginResponse(token, user.getUserID(), userDetails.getUsername(), user.getRole());
+            String token = jwtUtils.generateToken(userDetails.getUsername(), user.getUserID());
+            return new LoginResponse(token, user.getUserID(), userDetails.getUsername(), user.getRole());
+        } catch (BadCredentialsException e) {
+            throw new IllegalArgumentException("Invalid username or password");
+        }
     }
 }
