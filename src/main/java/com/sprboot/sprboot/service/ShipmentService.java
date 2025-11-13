@@ -108,7 +108,7 @@ public class ShipmentService {
                 List<Unit> units = new ArrayList<>();
                 List<String> invalidSerials = new ArrayList<>();
                 for (String serialNumber : serialNumbers) {
-                        Unit u = unitRepository.findBySerialNumber(serialNumber)
+                        Unit u = unitRepository.findBySerialNumber(serialNumber, sender.getUserID())
                                         .orElseThrow(() -> new EntityNotFoundException(
                                                         "Product unit not found, serial number : " + serialNumber));
 

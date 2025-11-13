@@ -27,7 +27,12 @@ public interface UnitRepository extends JpaRepository<Unit, Long> {
         @Query("UPDATE Unit u SET u.qrCodeURL = :qrCodeURL WHERE u.unitID = :unitID")
         int updateQrCodeUrl(@Param("qrCodeURL") String qrCodeUrl, @Param("unitID") Long unitID);
 
-        Optional<Unit> findBySerialNumber(String serialNumber);
+        @Query("""
+                        SELECT u FROM Unit u
+                        WHERE u.serialNumber = :serialNumber
+                        AND u.currentCustodianID = :userID
+                         """)
+        Optional<Unit> findBySerialNumber(String serialNumber, Long userID);
 
         @Query("""
                         SELECT u.serialNumber FROM Unit u
