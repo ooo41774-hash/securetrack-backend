@@ -250,6 +250,10 @@ public class ShipmentService {
                 User sender = shipment.getSender();
                 User receiver = shipment.getReceiver();
 
+                if (userID != sender.getUserID() || userID != receiver.getUserID()) {
+                        throw new IllegalArgumentException("Access Blocked");
+                }
+
                 // determine user action
                 if (sender.getUserID() == userID) {
                         if (shipment.getStatus().equals("pending")) {
@@ -335,7 +339,7 @@ public class ShipmentService {
 
                         if (!match) {
                                 throw new IllegalArgumentException(
-                                                "Your current location does not match with shipment's expected location");
+                                                "Location mismatch. \nPlease turn on your phone location (GPS) for accurate verification.");
                         }
 
                         // update Shipment status received
@@ -350,7 +354,7 @@ public class ShipmentService {
 
                         return true;
                 } catch (Exception e) {
-                        throw new IllegalArgumentException("Receiving Shipment Error: " + e.getMessage());
+                        throw new IllegalArgumentException(e.getMessage());
 
                 }
         }
