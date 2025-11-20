@@ -250,7 +250,7 @@ public class ShipmentService {
                 User sender = shipment.getSender();
                 User receiver = shipment.getReceiver();
 
-                if (userID != sender.getUserID() || userID != receiver.getUserID()) {
+                if (userID != sender.getUserID() && userID != receiver.getUserID()) {
                         throw new IllegalArgumentException("Access Blocked");
                 }
 
