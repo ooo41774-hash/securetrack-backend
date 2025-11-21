@@ -510,7 +510,7 @@ public class ShipmentService {
                                         ShipmentDTO sDto = new ShipmentDTO();
                                         sDto.setShipmentID(s.getShipmentID());
                                         sDto.setReceiverUsername(s.getReceiver().getUsername());
-                                        sDto.setReceiverAddress(s.getReceiver().getLocation().getAddress());
+                                        sDto.setReceiverAddress(s.getDestination().getAddress());
                                         sDto.setStatus(s.getStatus());
                                         sDto.setSentTimestamp(s.getSentTimestamp());
                                         sDto.setReceivedTimestamp(s.getReceivedTimestamp());
