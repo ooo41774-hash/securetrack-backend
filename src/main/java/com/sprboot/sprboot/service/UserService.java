@@ -94,6 +94,7 @@ public class UserService {
         uDto.setUsername(user.getUsername());
         uDto.setPhoneNumber(user.getPhoneNumber());
         uDto.setEmail(user.getEmail());
+        uDto.setRole(user.getRole());
 
         LocationDTO lDto = new LocationDTO();
         lDto.setAddress(user.getLocation().getAddress());
