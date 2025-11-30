@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.sprboot.sprboot.constants.EventType;
 import com.sprboot.sprboot.dto.BatchDTO;
 import com.sprboot.sprboot.dto.CustodyInfoDTO;
 import com.sprboot.sprboot.dto.ProductDTO;
@@ -34,11 +35,13 @@ import com.sprboot.sprboot.dto.ProductInfoDTO;
 import com.sprboot.sprboot.dto.ShipmentDTO;
 import com.sprboot.sprboot.dto.UserDTO;
 import com.sprboot.sprboot.dto.VerifyProductResponse;
+import com.sprboot.sprboot.entity.AuditLog;
 import com.sprboot.sprboot.entity.Batch;
 import com.sprboot.sprboot.entity.Product;
 import com.sprboot.sprboot.entity.Unit;
 import com.sprboot.sprboot.entity.Shipment;
 import com.sprboot.sprboot.entity.User;
+import com.sprboot.sprboot.repository.AuditLogRepository;
 import com.sprboot.sprboot.repository.BatchRepository;
 import com.sprboot.sprboot.repository.UnitRepository;
 import com.sprboot.sprboot.repository.ProductRepository;
@@ -61,6 +64,7 @@ public class ProductService {
     private final UnitRepository unitRepository;
     private final TraceabilityHistoryRepository traceabilityHistoryRepository;
     private final ShipmentRepository shipmentRepository;
+    private final AuditLogRepository auditLogRepository;
 
     @Value("${frontend.product.path}")
     private String path;
@@ -80,13 +84,15 @@ public class ProductService {
 
     public ProductService(ProductRepository productRepository, UserRepository userRepository,
             BatchRepository batchRepository, UnitRepository unitRepository,
-            TraceabilityHistoryRepository traceabilityHistoryRepository, ShipmentRepository shipmentRepository) {
+            TraceabilityHistoryRepository traceabilityHistoryRepository, ShipmentRepository shipmentRepository,
+            AuditLogRepository auditLogRepository) {
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.batchRepository = batchRepository;
         this.unitRepository = unitRepository;
         this.traceabilityHistoryRepository = traceabilityHistoryRepository;
         this.shipmentRepository = shipmentRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @PostConstruct
@@ -314,6 +320,13 @@ public class ProductService {
             throw new IllegalArgumentException("Url of unit " + unitID + " cannot be updated");
         }
 
+        // save audit log
+        AuditLog log = new AuditLog();
+        log.setEventType(EventType.UNIT_REGISTERED);
+        log.setUserID(registrar.getUserID());
+        log.setUnitID(unitID);
+        auditLogRepository.save(log);
+
         return savedUnit;
     }
 
@@ -375,6 +388,12 @@ public class ProductService {
             }
         }
         verifyProductResponse.setTraceRoute(shipmentDTOs);
+
+        // save audit log
+        AuditLog log = new AuditLog();
+        log.setEventType(EventType.UNIT_SCANNED);
+        log.setUnitID(unitID);
+        auditLogRepository.save(log);
 
         return verifyProductResponse;
     }

@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.sprboot.sprboot.constants.EventType;
 import com.sprboot.sprboot.dto.AddShipmentRequest;
 import com.sprboot.sprboot.dto.BatchDTO;
 import com.sprboot.sprboot.dto.CustodyInfoDTO;
@@ -31,6 +32,7 @@ import com.sprboot.sprboot.dto.UnitDTO;
 import com.sprboot.sprboot.dto.ShipmentDTO;
 import com.sprboot.sprboot.dto.ShipmentRequest;
 import com.sprboot.sprboot.dto.VerifyShipmentResponse;
+import com.sprboot.sprboot.entity.AuditLog;
 import com.sprboot.sprboot.entity.Location;
 import com.sprboot.sprboot.entity.Product;
 import com.sprboot.sprboot.entity.Unit;
@@ -38,6 +40,7 @@ import com.sprboot.sprboot.entity.Shipment;
 import com.sprboot.sprboot.entity.TraceabilityHistory;
 import com.sprboot.sprboot.entity.User;
 import com.sprboot.sprboot.repository.UnitRepository;
+import com.sprboot.sprboot.repository.AuditLogRepository;
 import com.sprboot.sprboot.repository.LocationRepository;
 import com.sprboot.sprboot.repository.ShipmentRepository;
 import com.sprboot.sprboot.repository.TraceabilityHistoryRepository;
@@ -72,17 +75,20 @@ public class ShipmentService {
         private UnitRepository unitRepository;
         private TraceabilityHistoryRepository traceabilityHistoryRepository;
         private LocationRepository locationRepository;
+        private AuditLogRepository auditLogRepository;
 
         public ShipmentService(ShipmentRepository shipmentRepository,
                         UserRepository userRepository,
                         UnitRepository unitRepository,
                         TraceabilityHistoryRepository traceabilityHistoryRepository,
-                        LocationRepository locationRepository) {
+                        LocationRepository locationRepository,
+                        AuditLogRepository auditLogRepository) {
                 this.shipmentRepository = shipmentRepository;
                 this.userRepository = userRepository;
                 this.unitRepository = unitRepository;
                 this.traceabilityHistoryRepository = traceabilityHistoryRepository;
                 this.locationRepository = locationRepository;
+                this.auditLogRepository = auditLogRepository;
         }
 
         @Transactional
@@ -196,10 +202,24 @@ public class ShipmentService {
                         shipment_unit.setShipment(shipment);
                         shipment_unit.setUnit(u);
                         traceabilityHistoryRepository.save(shipment_unit);
+
+                        // save audit log
+                        AuditLog log = new AuditLog();
+                        log.setEventType(EventType.UNIT_ASSIGNED_TO_SHIPMENT);
+                        log.setUserID(sender.getUserID());
+                        log.setUnitID(u.getUnitID());
+                        auditLogRepository.save(log);
                 }
 
                 // update unit status
                 unitRepository.updateUnitStatusPending(savedShipment.getShipmentID());
+
+                // save audit log
+                AuditLog log = new AuditLog();
+                log.setEventType(EventType.SHIPMENT_CREATED);
+                log.setUserID(sender.getUserID());
+                log.setShipmentID(shipmentID);
+                auditLogRepository.save(log);
 
                 String filename = addShipmentRequest.getFilename();
 
@@ -274,6 +294,13 @@ public class ShipmentService {
                 List<Unit> shipmentUnits = traceabilityHistoryRepository.getUnitByShipmentID(shipmentID);
                 List<ProductDTO> productDTOs = MapperUtil.toHierarchyDTO(shipmentUnits);
 
+                // save audit log
+                AuditLog log = new AuditLog();
+                log.setEventType(EventType.SHIPMENT_SCANNED);
+                log.setUserID(userID);
+                log.setShipmentID(shipmentID);
+                auditLogRepository.save(log);
+
                 return new VerifyShipmentResponse(shipment.getShipmentID(), sender.getUsername(),
                                 receiver.getUsername(),
                                 shipment.getDestination().getAddress(), productDTOs, action, shipment.getStatus());
@@ -302,6 +329,25 @@ public class ShipmentService {
 
                         // update unit status = shipped
                         unitRepository.updateUnitStatusShipped(shipmentID);
+
+                        Long userID = shipment.getReceiver().getUserID();
+
+                        // save audit log
+                        List<Unit> units = traceabilityHistoryRepository.getUnitByShipmentID(shipmentID);
+                        for (Unit u : units) {
+                                AuditLog log = new AuditLog();
+                                log.setEventType(EventType.UNIT_SENT);
+                                log.setUserID(userID);
+                                log.setUnitID(u.getUnitID());
+                                auditLogRepository.save(log);
+                        }
+
+                        // save audit log
+                        AuditLog log = new AuditLog();
+                        log.setEventType(EventType.SHIPMENT_SENT);
+                        log.setUserID(userID);
+                        log.setShipmentID(shipmentID);
+                        auditLogRepository.save(log);
 
                         return true;
                 } catch (Exception e) {
@@ -352,6 +398,25 @@ public class ShipmentService {
                         unitRepository.updateUnitCustodianAndStatusReceived(shipmentID,
                                         shipment.getReceiver().getUserID());
 
+                        Long userID = shipment.getReceiver().getUserID();
+
+                        // save audit log
+                        List<Unit> units = traceabilityHistoryRepository.getUnitByShipmentID(shipmentID);
+                        for (Unit u : units) {
+                                AuditLog log = new AuditLog();
+                                log.setEventType(EventType.UNIT_RECEIVED);
+                                log.setUserID(userID);
+                                log.setUnitID(u.getUnitID());
+                                auditLogRepository.save(log);
+                        }
+
+                        // save audit log
+                        AuditLog log = new AuditLog();
+                        log.setEventType(EventType.SHIPMENT_RECEIVED);
+                        log.setUserID(userID);
+                        log.setShipmentID(shipmentID);
+                        auditLogRepository.save(log);
+
                         return true;
                 } catch (Exception e) {
                         throw new IllegalArgumentException(e.getMessage());
@@ -394,6 +459,23 @@ public class ShipmentService {
                         }
                         unitRepository.updateUnitStatusCreated(selfRegisteredUnits);
                         unitRepository.updateUnitStatusReceived(receivedUnits);
+
+                        // save audit log
+                        List<Unit> units = traceabilityHistoryRepository.getUnitByShipmentID(shipmentID);
+                        for (Unit u : units) {
+                                AuditLog log = new AuditLog();
+                                log.setEventType(EventType.UNIT_REMOVED_FROM_SHIPMENT);
+                                log.setUserID(userID);
+                                log.setUnitID(u.getUnitID());
+                                auditLogRepository.save(log);
+                        }
+
+                        // save audit log
+                        AuditLog log = new AuditLog();
+                        log.setEventType(EventType.SHIPMENT_RECALLED);
+                        log.setUserID(userID);
+                        log.setShipmentID(shipmentID);
+                        auditLogRepository.save(log);
 
                         return true;
                 } catch (Exception e) {
